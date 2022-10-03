@@ -1,5 +1,11 @@
 const resultado = document.querySelector('#resultado')
 const formulario = document.querySelector('#formulario')
+const paginacionDiv = document.querySelector('#paginacion')
+
+const registrosPorPagina = 40 
+let totalPaginas
+let iterador
+let paginaActual = 1
 
 window.onload = () => {
     formulario.addEventListener('submit', validarFormulario)
@@ -15,7 +21,7 @@ function validarFormulario(e) {
         return
     }
 
-    buscarImagenes(terminoBusqueda)
+    buscarImagenes()
 }
 
 function mostrarAlerta(mensaje) {
@@ -39,15 +45,30 @@ function mostrarAlerta(mensaje) {
 
 }
 
-function buscarImagenes(termino) {
+function buscarImagenes() {
+    const termino = document.querySelector('#termino').value
+
+
     const key = '27513259-9fecfb0148a8b57873821ea8f'
-    const url = `https://pixabay.com/api/?key=${key}&q=${termino}`
+    const url = `https://pixabay.com/api/?key=${key}&q=${termino}&per_page=${registrosPorPagina}&page=${paginaActual}`
     
     fetch(url)
         .then(respuesta => respuesta.json())
         .then(resultado => {
+            totalPaginas = calcularPaginas(resultado.totalHits)
             mostrarImagenes(resultado.hits);
         })
+}
+
+//GENERADOR QUE RIGISTRA LA CANTIDAD DE ELEMENTOS POR PAGINAS
+function *crearPaginador(total) {
+    for (let i=1; i<= total; i++) {
+        yield  i  
+    }
+}
+
+function calcularPaginas(total) {
+    return parseInt(Math.ceil(total / registrosPorPagina))
 }
 
 function mostrarImagenes(imagenes) {
@@ -78,4 +99,35 @@ function mostrarImagenes(imagenes) {
         `
     })    
 
+    //Limpiar paginador previo
+    while (paginacionDiv.firstChild) {
+        paginacionDiv.removeChild(paginacionDiv.firstChild)
+    }
+
+    //Generamos nuevo HTML
+    imprimirPaginador()
+}
+
+function imprimirPaginador() {
+    iterador = crearPaginador(totalPaginas)
+
+    while (true) {
+        const {value, done} = iterador.next()
+        if(done) return
+
+        ///caso contrario genera un boton por cada elemento en el generador
+        //Creamos paginador con HTML
+        const boton = document.createElement('a')
+        boton.href = '#'
+        boton.dataset.pagina = value
+        boton.textContent = value
+        boton.classList.add('siguiente', 'bg-yellow-400', 'px-4', 'py-1', 'mr-2', 'font-bold', 'mb-4', 'rounded')
+
+        boton.onclick = () => {
+            paginaActual = value
+            buscarImagenes()
+        }
+
+        paginacionDiv.appendChild(boton)
+    }
 }
